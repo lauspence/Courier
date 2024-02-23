@@ -1,0 +1,6 @@
+*.log
+*.pot
+*.pyc
+__pycatche__
+db.sqlite3
+media
