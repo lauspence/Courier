@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% comment %}
+{% block content %}
+<div class="container">
+    <h2>Customer Details</h2>
+    <table border="1">
+        <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+        </tr>
+        {% for customer in customers %}
+        <tr>
+            <td>{{ customer.first_name }}</td>
+            <td>{{ customer.last_name }}</td>
+            <td>{{ customer.email }}</td>
+            <td>{{ customer.phone }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %} {% endcomment %}
