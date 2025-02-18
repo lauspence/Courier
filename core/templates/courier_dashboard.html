@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Welcome, {{ courier_profile.user.username }}</h2>
+    <h3>Available Jobs</h3>
+    <ul class="list-group">
+        {% for job in available_jobs %}
+            <li class="list-group-item">
+                <strong>{{ job.item_type }}</strong><br>
+                Pickup Location: {{ job.pickup_location }}<br>
+                Delete Location: {{ job.delivery_location }}<br>
+                <a href="{% url 'accept_job' job.id %}" class="btn btn-success mt-2">Accept Job</a>
+            </li>
+        {% empty %}
+            <li class="list-group-item">No available jobs at the moment.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

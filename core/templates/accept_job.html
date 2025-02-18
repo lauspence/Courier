@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg p-4">
+        <h2 class="text-center mb-4 text-primary">🚚 Job Accepted</h2>
+
+        <div class="row">
+            <!-- Job Details -->
+            <div class="col-md-6">
+                <div class="card p-3 mb-3 border-0 bg-light">
+                    <h5 class="text-dark"><i class="fas fa-box"></i> Item Type:</h5>
+                    <p class="text-secondary">{{ job.item_type }}</p>
+                </div>
+
+                <div class="card p-3 mb-3 border-0 bg-light">
+                    <h5 class="text-dark"><i class="fas fa-map-marker-alt text-danger"></i> Pickup Location:</h5>
+                    <p class="text-secondary">{{ job.pickup_location }}</p>
+                </div>
+
+                <div class="card p-3 border-0 bg-light">
+                    <h5 class="text-dark"><i class="fas fa-map-marker-alt text-success"></i> Delivery Location:</h5>
+                    <p class="text-secondary">{{ job.delivery_location }}</p>
+                </div>
+
+                <!-- Job Status Section -->
+                <div class="mt-4">
+                    <h5><i class="fas fa-tasks"></i> Job Status: <span id="job-status">{{ job.status }}</span></h5>
+
+                    <!-- Progress Bar -->
+                    <div class="progress">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 20%;"></div>
+                    </div>
+                </div>
+
+                <!-- Status Update Buttons -->
+                <div class="mt-3">
+                    {% if job.status == 'accepted' %}
+                        <button id="start-delivery-btn" class="btn btn-warning w-100" data-status="in_progress">🚀 Start Delivery</button>
+                    {% endif %}
+
+                    <button id="complete-delivery-btn" class="btn btn-success w-100" data-status="completed">✅ Mark as Completed</button>
+                </div>
+
+                <!-- Success Message -->
+                <div id="success-message" class="alert alert-success mt-3 text-center" style="display: none;">
+                    ✅ Job status updated successfully!
+                </div>
+
+                <!-- Job History Section -->
+                <div class="mt-4">
+                    <h5><i class="fas fa-history"></i> Job Status History</h5>
+                    <ul id="status-history" class="list-group">
+                        {% for entry in job.status_history.all %}
+                            <li class="list-group-item">
+                                <strong>{{ entry.timestamp }}:</strong> {{ entry.status }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Map Section -->
+            <div class="col-md-6">
+                <h4 class="text-center text-primary">📍 Job Route</h4>
+                <div id="map" class="rounded shadow-sm" style="height: 400px; width: 100%;"></div>
+                <p class="text-center mt-3"><strong>Distance:</strong> <span id="distance" class="text-success">Calculating...</span> km</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Google Map Script -->
+<script>
+    var pickupMarker, deliveryMarker, linePath;
+
+    function initMap() {
+        var map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 12,
+            center: { lat: -1.286389, lng: 36.817223 },
+            mapTypeControl: false,
+            streetViewControl: false
+        });
+
+        var pickup = { lat: {{ job.pickup_lat|default:-1.286389 }}, lng: {{ job.pickup_lng|default:36.817223 }} };
+        var delivery = { lat: {{ job.delivery_lat|default:-1.286389 }}, lng: {{ job.delivery_lng|default:36.817223 }} };
+
+        pickupMarker = new google.maps.Marker({
+            position: pickup,
+            map: map,
+            label: "P",
+            icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+        });
+
+        deliveryMarker = new google.maps.Marker({
+            position: delivery,
+            map: map,
+            label: "D",
+            icon: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
+        });
+
+        linePath = new google.maps.Polyline({
+            path: [pickup, delivery],
+            geodesic: true,
+            strokeColor: "#007bff",
+            strokeOpacity: 0.8,
+            strokeWeight: 4
+        });
+
+        linePath.setMap(map);
+
+        var distance = google.maps.geometry.spherical.computeDistanceBetween(
+            new google.maps.LatLng(pickup.lat, pickup.lng),
+            new google.maps.LatLng(delivery.lat, delivery.lng)
+        ) / 1000; // Convert to km
+
+        document.getElementById("distance").innerText = distance.toFixed(2) ;
+    }
+
+    function removeMarkers() {
+        if (pickupMarker) pickupMarker.setMap(null);
+        if (deliveryMarker) deliveryMarker.setMap(null);
+        if (linePath) linePath.setMap(null);
+    }
+
+    function updateProgressBar(status) {
+        var progressBar = document.getElementById("progress-bar");
+
+        // Normalize status
+        status = status.toLowerCase(); 
+
+        if (status === "accepted") {
+            progressBar.style.width = "20%";
+            progressBar.classList.add("bg-secondary");
+            progressBar.classList.remove("bg-warning", "bg-success");  
+        } else if (status === "in_progress") {  
+            progressBar.style.width = "50%";  
+            progressBar.classList.remove("bg-secondary");
+            progressBar.classList.add("bg-warning");
+        } else if (status === "completed") {  
+            progressBar.style.width = "100%";
+            progressBar.classList.remove("bg-warning");
+            progressBar.classList.add("bg-success");
+            removeMarkers();  
+        }
+    }
+
+    function updateJobStatus(newStatus, button) {
+        button.disabled = true;
+
+        fetch("{% url 'update_job_status' job.id 'STATUS_PLACEHOLDER' %}".replace('STATUS_PLACEHOLDER', newStatus), {
+            method: "GET",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("job-status").innerText = data.status;
+            updateProgressBar(data.status);
+
+            let successMessage = document.getElementById("success-message");
+            successMessage.style.display = "block";
+            setTimeout(() => { successMessage.style.display = "none"; }, 2000);
+
+            if (data.status === "in_progress") {
+                document.getElementById("start-delivery-btn").style.display = "none";
+                document.getElementById("complete-delivery-btn").style.display = "block";
+            } else if (data.status === "completed") {
+                document.getElementById("complete-delivery-btn").style.display = "none";
+            }
+
+            var historyList = document.getElementById("status-history");
+            var newHistoryItem = document.createElement("li");
+            newHistoryItem.classList.add("list-group-item");
+            newHistoryItem.innerHTML = `<strong>${data.timestamp}:</strong> ${data.status}`;
+            historyList.appendChild(newHistoryItem);
+        })
+        .catch(error => console.error("Error:", error))
+        .finally(() => { button.disabled = false; });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        var status = document.getElementById("job-status").innerText;
+        updateProgressBar(status);
+
+        document.querySelectorAll("button[data-status]").forEach(button => {
+            button.addEventListener("click", function() {
+                updateJobStatus(this.getAttribute("data-status"), this);
+            });
+        });
+
+        if (status === "in_progress") {
+            document.getElementById("complete-delivery-btn").style.display = "block";
+        }
+    });
+</script>
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC95lObpySHqUA0UvzP8ETE_gOW8EKSnfU&libraries=geometry&callback=initMap"></script>
+
+{% endblock %}

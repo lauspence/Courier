@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg p-4">
+        <h2 class="text-center text-primary">📦 Job Details</h2>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card p-3 mb-3 border-0 bg-light">
+                    <h5 class="text-dark"><i class="fas fa-box"></i> Item Type:</h5>
+                    <p class="text-secondary">{{ job.item_type }}</p>
+                </div>
+
+                <div class="card p-3 mb-3 border-0 bg-light">
+                    <h5 class="text-dark"><i class="fas fa-map-marker-alt text-danger"></i> Pickup Location:</h5>
+                    <p class="text-secondary">Latitude: {{ job.pickup_lat }}, Longitude: {{ job.pickup_lng }}</p>
+                </div>
+
+                <div class="card p-3 mb-3 border-0 bg-light">
+                    <h5 class="text-dark"><i class="fas fa-calendar-alt"></i> Created At:</h5>
+                    <p class="text-secondary">{{ job.created_at|date:"F j, Y, g:i a" }}</p>
+                </div>
+
+                <div class="text-center">
+                    <a href="{% url 'edit_job' job.id %}" class="btn btn-primary btn-lg">✏️ Edit Job</a>
+                </div>
+            </div>
+
+            <!-- Google Map Section -->
+            <div class="col-md-6">
+                <h4 class="text-center text-primary">📍 Job Route</h4>
+                <div id="map" class="rounded shadow-sm" style="height: 400px; width: 100%;"></div>
+                <p class="text-center mt-3"><strong>Distance:</strong> <span id="distance" class="text-success">Calculating...</span> km</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Google Map Script -->
+<script>
+    function initMap() {
+        var map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 12,
+            center: { lat: {{ job.pickup_lat|default:-1.286389 }}, lng: {{ job.pickup_lng|default:36.817223 }} },
+            mapTypeControl: false,
+            streetViewControl: false
+        });
+
+        var pickup = { lat: {{ job.pickup_lat|default:-1.286389 }}, lng: {{ job.pickup_lng|default:36.817223 }} };
+        var delivery = { lat: {{ job.delivery_lat|default:pickup.lat }}, lng: {{ job.delivery_lng|default:pickup.lng }} };  // Add default fallback for delivery coordinates
+
+        var pickupMarker = new google.maps.Marker({
+            position: pickup,
+            map: map,
+            label: "P",
+            icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+        });
+
+        var deliveryMarker = new google.maps.Marker({
+            position: delivery,
+            map: map,
+            label: "D",
+            icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+        });
+
+        var distance = google.maps.geometry.spherical.computeDistanceBetween(
+            new google.maps.LatLng(pickup.lat, pickup.lng),
+            new google.maps.LatLng(delivery.lat, delivery.lng)
+        ) / 1000; // Convert to km
+
+        document.getElementById("distance").innerText = distance.toFixed(2) + " km";
+    }
+</script>
+
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC95lObpySHqUA0UvzP8ETE_gOW8EKSnfU&libraries=geometry&callback=initMap"></script>
+
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Create a Delivery Job</h2>
+
+    <div class="row">
+        <!-- Form on the Left -->
+        <div class="col-md-6">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label>Item Type</label>
+                    {{ form.item_type }}
+                </div>
+
+                <!-- Pickup Location -->
+                <div class="form-group">
+                    <label>Pickup Location</label>
+                    <input type="text" id="pickup_location" class="form-control" placeholder="Search for Pickup Location" aria-label="Enter Pickup Location">
+                </div>
+
+                <!-- Hidden Latitude and Longitude fields for Pickup -->
+                <input type="hidden" id="id_pickup_lat" name="pickup_lat">
+                <input type="hidden" id="id_pickup_lng" name="pickup_lng">
+
+                <!-- Delivery Location -->
+                <div class="form-group">
+                    <label>Delivery Location</label>
+                    <input type="text" id="delivery_location" class="form-control" placeholder="Search for Delivery Location" aria-label="Enter Delivery Location">
+                </div>
+
+                <!-- Hidden Latitude and Longitude fields for Delivery -->
+                <input type="hidden" id="id_delivery_lat" name="delivery_lat">
+                <input type="hidden" id="id_delivery_lng" name="delivery_lng">
+
+                <button type="submit" class="btn btn-primary">Create Job</button>
+            </form>
+        </div>
+
+        <!-- Map on the Right -->
+        <div class="col-md-6">
+            <div id="map" style="height: 400px; width: 100%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Google Maps Script -->
+<script>
+    var map;
+    var pickupMarker;
+    var deliveryMarker;
+    var linePath;
+    
+    function initMap() {
+        // Default location (centered at Nairobi)
+        var defaultLocation = { lat: -1.286389, lng: 36.817223 };
+        map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 10,
+            center: defaultLocation
+        });
+
+        pickupMarker = new google.maps.Marker({ map: map, draggable: true });
+        deliveryMarker = new google.maps.Marker({ map: map, draggable: true });
+        linePath = new google.maps.Polyline({
+            geodesic: true,
+            strokeColor: "#000000", // Black color for the line
+            strokeOpacity: 0.7, // Make the line semi-transparent
+            strokeWeight: 3, // Thickness of the line
+        });
+
+        // Add Autocomplete for both pickup and delivery locations
+        var pickupAutocomplete = new google.maps.places.Autocomplete(document.getElementById("pickup_location"));
+        var deliveryAutocomplete = new google.maps.places.Autocomplete(document.getElementById("delivery_location"));
+
+        // Set up event listeners for when the user selects a place
+        pickupAutocomplete.addListener('place_changed', function () {
+            var place = pickupAutocomplete.getPlace();
+            if (place.geometry) {
+                var location = place.geometry.location;
+                pickupMarker.setPosition(location);
+                document.getElementById("id_pickup_lat").value = location.lat();
+                document.getElementById("id_pickup_lng").value = location.lng();
+                map.setCenter(location);
+                updateLine();
+            } else {
+                alert("Place not found.");
+            }
+        });
+
+        deliveryAutocomplete.addListener('place_changed', function () {
+            var place = deliveryAutocomplete.getPlace();
+            if (place.geometry) {
+                var location = place.geometry.location;
+                deliveryMarker.setPosition(location);
+                document.getElementById("id_delivery_lat").value = location.lat();
+                document.getElementById("id_delivery_lng").value = location.lng();
+                map.setCenter(location);
+                updateLine();
+            } else {
+                alert("Place not found.");
+            }
+        });
+
+        // Event listener to set pickup and delivery locations when clicked on the map
+        map.addListener("click", function (event) {
+            if (!pickupMarker.getPosition()) {
+                pickupMarker.setPosition(event.latLng);
+                document.getElementById("id_pickup_lat").value = event.latLng.lat();
+                document.getElementById("id_pickup_lng").value = event.latLng.lng();
+            } else if (!deliveryMarker.getPosition()) {
+                deliveryMarker.setPosition(event.latLng);
+                document.getElementById("id_delivery_lat").value = event.latLng.lat();
+                document.getElementById("id_delivery_lng").value = event.latLng.lng();
+            }
+        });
+
+        // Make markers draggable
+        pickupMarker.addListener("dragend", function () {
+            document.getElementById("id_pickup_lat").value = pickupMarker.getPosition().lat();
+            document.getElementById("id_pickup_lng").value = pickupMarker.getPosition().lng();
+            updateLine();
+        });
+
+        deliveryMarker.addListener("dragend", function () {
+            document.getElementById("id_delivery_lat").value = deliveryMarker.getPosition().lat();
+            document.getElementById("id_delivery_lng").value = deliveryMarker.getPosition().lng();
+            updateLine();
+        });
+    }
+
+    // Update the line between the two markers
+    function updateLine() {
+        if (pickupMarker.getPosition() && deliveryMarker.getPosition()) {
+            var path = [pickupMarker.getPosition(), deliveryMarker.getPosition()];
+            linePath.setPath(path);
+            linePath.setMap(map);
+        }
+    }
+
+</script>
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC95lObpySHqUA0UvzP8ETE_gOW8EKSnfU&libraries=geometry,places&callback=initMap"></script>
+
+{% endblock %}

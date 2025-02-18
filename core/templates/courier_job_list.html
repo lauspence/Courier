@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center text-primary">📦 Courier Jobs</h2>
+
+    <!-- Available Jobs -->
+    <div class="card shadow-lg p-3 mt-4">
+        <h4 class="text-secondary">📍 Available Jobs</h4>
+        {% if available_jobs %}
+            <ul class="list-group">
+                {% for job in available_jobs %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>📦 {{ job.item_type }}</strong> <br>
+                            <span class="text-muted">Pickup: {{ job.pickup_location }} → Delivery: {{ job.delivery_location }}</span>
+                        </div>
+                        <div>
+                            <a href="{% url 'accept_job' job.id %}" class="btn btn-sm btn-outline-success">Accept Job</a>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted text-center">No available jobs at the moment.</p>
+        {% endif %}
+    </div>
+
+    <!-- In Progress Jobs -->
+    <div class="card shadow-lg p-3 mt-4">
+        <h4 class="text-info">🔄 In Progress Jobs</h4>
+        {% if in_progress_jobs %}
+            <ul class="list-group">
+                {% for job in in_progress_jobs %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>📦 {{ job.item_type }}</strong> <br>
+                            <span class="text-muted">Pickup: {{ job.pickup_location }} → Delivery: {{ job.delivery_location }}</span>
+                        </div>
+                        <div>
+                            <span class="badge bg-info">In Progress</span>
+                            <a href="{% url 'job_details' job.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted text-center">No jobs in progress.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

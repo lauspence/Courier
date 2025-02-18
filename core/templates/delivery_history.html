@@ -1,0 +1,18 @@
+<!-- templates/courier/delivery_history.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h3 class="text-center">Courier Delivery History</h3>
+        <ul class="list-group">
+            {% for entry in delivery_history %}
+                <li class="list-group-item">
+                    <strong>Job ID:</strong> {{ entry.job.id }} | 
+                    <strong>Item Type:</strong> {{ entry.job.item_type }} |
+                    <strong>Status:</strong> {{ entry.status }} |
+                    <strong>Completed On:</strong> {{ entry.completed_at|date:"Y-m-d H:i" }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

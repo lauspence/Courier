@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Edit Job Details</h2>
+    <form method="POST">
+        {% csrf_token %}
+        
+        {{ form.as_p }}  <!-- Display form fields -->
+
+        <!-- Latitude and Longitude input fields -->
+        <div class="form-group">
+            <label for="pickup_lat">Pickup Latitude</label>
+            <input type="text" id="pickup_lat" name="pickup_lat" class="form-control" placeholder="Latitude" value="{{ form.pickup_lat.value|default:job.pickup_lat }}">
+        </div>
+        <div class="form-group">
+            <label for="pickup_lng">Pickup Longitude</label>
+            <input type="text" id="pickup_lng" name="pickup_lng" class="form-control" placeholder="Longitude" value="{{ form.pickup_lng.value|default:job.pickup_lng }}">
+        </div>
+
+        {% comment %} <!-- Google Map to pick location -->
+        <div id="map" style="height: 400px;"></div> {% endcomment %}
+
+        <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
+    </form>
+</div>
+
+{% comment %} <!-- Include Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC95lObpySHqUA0UvzP8ETE_gOW8EKSnfU    &libraries=places&callback=initMap" async defer></script>
+
+<script>
+  let map;
+  let marker;
+
+  function initMap() {
+    // Set initial coordinates (use existing job's lat/lng if available)
+    const initialLat = {{ form.pickup_lat.value|default:job.pickup_lat }};
+    const initialLng = {{ form.pickup_lng.value|default:job.pickup_lng }};
+    
+    // Initialize the map
+    map = new google.maps.Map(document.getElementById("map"), {
+      center: { lat: initialLat || 37.7749, lng: initialLng || -122.4194 }, // Default to San Francisco
+      zoom: 12,
+    });
+
+    // Add a marker at the initial position
+    marker = new google.maps.Marker({
+      position: { lat: initialLat || 37.7749, lng: initialLng || -122.4194 },
+      map: map,
+      draggable: true,  // Allow user to drag marker
+    });
+
+    // Update latitude and longitude fields when marker is dragged
+    google.maps.event.addListener(marker, "dragend", function() {
+      const position = marker.getPosition();
+      document.getElementById("pickup_lat").value = position.lat();
+      document.getElementById("pickup_lng").value = position.lng();
+    });
+
+    // Add a click event to place a marker where the user clicks on the map
+    google.maps.event.addListener(map, "click", function(event) {
+      const clickedLocation = event.latLng;
+      marker.setPosition(clickedLocation);
+      document.getElementById("pickup_lat").value = clickedLocation.lat();
+      document.getElementById("pickup_lng").value = clickedLocation.lng();
+    });
+  }
+</script> {% endcomment %}
+
+{% endblock %}
